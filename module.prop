@@ -1,0 +1,6 @@
+id=dlinjector
+name=Zygisk DL Injector
+version=v0.1
+versionCode=1
+author=fajary
+description=Loads configured dl(s) into matching processes

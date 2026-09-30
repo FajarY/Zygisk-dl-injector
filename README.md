@@ -20,6 +20,7 @@ To build you can run the `build.ps1` just make sure to change the ndk of the scr
 ```
 $ndk = 'D:\Binaries\Android\ndk\25.2.9519653\ndk-build.cmd'
 ```
+The output will be located at module.zip
 
 ## Vscode Intelisense
 Make sure to change the includePath on `.vscode\c_cpp_properties.json`, and specify the path of your ndk.

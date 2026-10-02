@@ -33,5 +33,7 @@ $ndk = 'D:\Binaries\Android\ndk\25.2.9519653\ndk-build.cmd'
 ```
 The output will be located at module.zip
 
+There is also an example template of libempty.so on the empty.so folder. To build it just run `empty.so/build.ps1`
+
 ## Vscode Intelisense
 Make sure to change the includePath on `.vscode\c_cpp_properties.json`, and specify the path of your ndk.

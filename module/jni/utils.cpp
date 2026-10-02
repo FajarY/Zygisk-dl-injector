@@ -94,60 +94,89 @@ int search_parse_config(const char* config, const char* process_name, linked_lis
 
     int count = 0;
 
+    bool add = false;
+    linked_list* current_list = NULL;
+
     while(true)
     {
-        const char* target_process_name = strstr(read_position, " : ");
-        if(target_process_name == NULL)
+        if(*read_position == 0)
         {
+            if(current_list != NULL)
+            {
+                add_to_linked_list(output_dl_to_load, current_list);
+                count += 1;
+                current_list = NULL;
+            }
             break;
         }
-
-        size_t target_process_name_len = target_process_name - read_position;
-        if(process_name_len != target_process_name_len || memcmp(process_name, read_position, process_name_len) != 0)
+        if(*read_position == '\n')
         {
-            read_position = strstr(read_position, "\n");
-            if(read_position == NULL)
-            {
-                break;
-            }
-            else
-            {
-                read_position += 1;
-            }
+            read_position += 1;
             continue;
         }
 
-        const char* dl_path = target_process_name + 3;
-        const char* dl_path_end = strstr(dl_path, "\n");
-        size_t dl_path_len = 0;
-
-        if(dl_path_end == NULL)
-        {
-            dl_path_len = strlen(dl_path);
-        }
-        else
-        {
-            dl_path_len = dl_path_end - dl_path;
-        }
-
-        char* dl_path_alloc = (char*)malloc(dl_path_len + 1);
-        *(dl_path_alloc + dl_path_len) = 0;
-
-        memcpy(dl_path_alloc, dl_path, dl_path_len);
-        
-        add_to_linked_list(output_dl_to_load, dl_path_alloc);
-
-        count += 1;
-
-        read_position = dl_path_end;
-        if(read_position == NULL)
-        {
-            break;
-        }
-        else
+        if(*read_position == '\t' && add == true)
         {
             read_position += 1;
+
+            const char* end = strstr(read_position, "\n");
+            int len = 0;
+
+            if(end == NULL)
+            {
+                len = strlen(read_position);
+            }
+            else
+            {
+                len = end - read_position;
+            }
+
+            char* str = (char*)malloc(len + 1);
+            *(str + len) = 0;
+            memcpy(str, read_position, len);
+            add_to_linked_list(&current_list, str);
+
+            read_position += len;
+            continue;
         }
+
+        if(add == true)
+        {
+            add = false;
+
+            if(current_list != NULL)
+            {
+                add_to_linked_list(output_dl_to_load, current_list);
+                count += 1;
+                current_list = NULL;
+                continue;
+            }
+        }
+
+        const char* target_end = strstr(read_position, "\n");
+        int target_len = 0;
+
+        if(target_end == NULL)
+        {
+            target_len = strlen(read_position);
+        }
+        else
+        {
+            target_len = target_end - read_position;
+        }
+
+        if(target_len != process_name_len)
+        {
+            read_position += target_len;
+            continue;
+        }
+
+        if(memcmp(read_position, process_name, target_len) == 0)
+        {
+            add = true;
+        }
+
+        read_position += target_len;
     }
 
     return count;

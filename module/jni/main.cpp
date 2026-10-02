@@ -72,9 +72,44 @@ public:
         linked_list* current = dl_to_load;
         while (current != NULL)
         {
-            char* dl_path = (char*)current->value;
+            linked_list* values = (linked_list*)current->value;
+
+            char* temp = NULL;
+            char* dl_path = NULL;
+            int freeze_loop_for_dl = -1;
+
+            while(values != NULL)
+            {
+                char* value_str = (char*)values->value;
+
+                temp = strstr(value_str, "dl_path : ");
+                if(temp != NULL)
+                {
+                    dl_path = temp + 10;
+                    values = values->next;
+                    temp = NULL;
+                    continue;
+                }
+                temp = strstr(value_str, "freeze_loop_wait_time : ");
+                if(temp != NULL)
+                {
+                    freeze_loop_for_dl = atoi(temp + 24);
+                    values = values->next;
+                    temp = NULL;
+                    continue;
+                }
+
+                values = values->next;
+                temp = NULL;
+            }
 
             LOGI("Loading %s", dl_path);
+            if(dl_path == NULL)
+            {
+                LOGI("section has no dl_path, skipping");
+                current = current->next;
+                continue;
+            }
 
             void* handle = dlopen(dl_path, RTLD_NOW);
 
@@ -85,12 +120,41 @@ public:
             else
             {
                 LOGI("Loaded %s with handle %p", dl_path, handle);
+
+                if(freeze_loop_for_dl >= 0)
+                {
+                    LOGI("Freeze loop enabled for %s with usleep loop is %d microseconds", dl_path, freeze_loop_for_dl);
+
+                    auto fn = (int (*)(const AppSpecializeArgs*, Api*, JNIEnv*))dlsym(handle, "waiter_should_continue");
+                    if (!fn)
+                    {
+                        LOGI("dlsym waiter_should_continue failed: %s", dlerror());
+                    }
+                    else
+                    {
+                        while (fn(args, api, env) == 0)
+                        {
+                            usleep(freeze_loop_for_dl);
+                        }
+                    }
+
+                    LOGI("Freeze loop finished");
+                }
             }
 
             current = current->next;
         }
 
-        free_linked_list_and_its_value(&dl_to_load);
+        linked_list* free_current = dl_to_load;
+        while(free_current != NULL)
+        {
+            linked_list* val = (linked_list*)free_current->value;
+            
+            free_linked_list_and_its_value(&val);
+            free_current = free_current->next;
+        }
+
+        free_linked_list(&dl_to_load);
     }
 
 private:
